@@ -10,9 +10,15 @@ import { Link } from "@inertiajs/vue3";
                 >Dashboard</Link
             >
             <Link href="/" class="block hover:text-gray-300">Beranda</Link>
-            <!-- Baris baru: menu menuju daftar buku -->
+
+            <!-- Menu menuju daftar buku -->
             <Link href="/books" class="block hover:text-gray-300"
                 >Data Buku</Link
+            >
+
+            <!-- Baris baru: menu menuju daftar anggota -->
+            <Link href="/members" class="block hover:text-gray-300"
+                >Data Anggota</Link
             >
         </nav>
     </aside>

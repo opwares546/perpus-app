@@ -22,6 +22,43 @@ class MemberController extends Controller
         ]);
     }
 
+    /**
+     * Endpoint JSON untuk live search anggota (dipanggil oleh Axios).
+     */
+    public function search(Request $request)
+    {
+        $kataKunci = $request->query('q', '');
+
+        $members = Member::where(function ($query) use ($kataKunci) {
+            $query->where('nama', 'like', "%{$kataKunci}%")
+                  ->orWhere('nis_nim', 'like', "%{$kataKunci}%");
+        })
+        ->latest()
+        ->limit(10)
+        ->get(['id', 'nama', 'nis_nim', 'no_hp', 'foto']);
+
+        return response()->json($members);
+    }
+
+    /**
+     * Endpoint JSON untuk validasi realtime: apakah NIS/NIM masih tersedia?
+     */
+    public function cekNis(Request $request)
+    {
+        $nisNim = $request->query('nis_nim', '');
+        $abaikanId = $request->query('abaikan');
+
+        $sudahDipakai = Member::where('nis_nim', $nisNim)
+            ->when($abaikanId, function ($query, $id) {
+                $query->where('id', '!=', $id);
+            })
+            ->exists();
+
+        return response()->json([
+            'tersedia' => !$sudahDipakai,
+        ]);
+    }
+
     public function create()
     {
         return inertia('Members/Create');

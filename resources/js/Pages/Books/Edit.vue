@@ -2,12 +2,10 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { useForm } from "@inertiajs/vue3";
 
-// 'book' diterima dari BookController@edit (Langkah 2), berisi data lama buku ini[cite: 8]
 const props = defineProps({
     book: Object,
 });
 
-// Berbeda dari Create.vue: nilai awal form diisi dari props.book, bukan string/angka kosong
 const form = useForm({
     kode_buku: props.book.kode_buku,
     judul: props.book.judul,
@@ -18,95 +16,85 @@ const form = useForm({
 });
 
 function submit() {
-    // form.put() karena ini operasi Update[cite: 8]
     form.put(route("books.update", props.book.id));
 }
 </script>
 
 <template>
     <AuthenticatedLayout>
-        <div style="padding: 20px">
-            <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 20px">
-                Edit Buku
-            </h1>
-            <form
-                @submit.prevent="submit"
-                style="
-                    display: flex;
-                    flex-direction: column;
-                    gap: 15px;
-                    max-width: 400px;
-                "
-            >
+        <div class="p-4">
+            <h1 class="text-xl font-bold">Edit Buku</h1>
+            <form @submit.prevent="submit" class="mt-3 space-y-3 max-w-md">
                 <div>
-                    <label>Kode Buku</label>
+                    <label class="block">Kode Buku</label>
                     <input
                         v-model="form.kode_buku"
                         type="text"
-                        style="width: 100%"
+                        class="w-full border p-2"
                     />
-                    <span
-                        v-if="form.errors.kode_buku"
-                        style="color: red; font-size: 14px"
-                        >{{ form.errors.kode_buku }}</span
-                    >
+                    <div v-if="form.errors.kode_buku" class="text-red-600">
+                        {{ form.errors.kode_buku }}
+                    </div>
                 </div>
-
                 <div>
-                    <label>Judul</label>
+                    <label class="block">Judul</label>
                     <input
                         v-model="form.judul"
                         type="text"
-                        style="width: 100%"
+                        class="w-full border p-2"
                     />
+                    <div v-if="form.errors.judul" class="text-red-600">
+                        {{ form.errors.judul }}
+                    </div>
                 </div>
-
                 <div>
-                    <label>Pengarang</label>
+                    <label class="block">Pengarang</label>
                     <input
                         v-model="form.pengarang"
                         type="text"
-                        style="width: 100%"
+                        class="w-full border p-2"
                     />
+                    <div v-if="form.errors.pengarang" class="text-red-600">
+                        {{ form.errors.pengarang }}
+                    </div>
                 </div>
-
                 <div>
-                    <label>Penerbit</label>
+                    <label class="block">Penerbit</label>
                     <input
                         v-model="form.penerbit"
                         type="text"
-                        style="width: 100%"
+                        class="w-full border p-2"
                     />
+                    <div v-if="form.errors.penerbit" class="text-red-600">
+                        {{ form.errors.penerbit }}
+                    </div>
                 </div>
-
                 <div>
-                    <label>Tahun</label>
+                    <label class="block">Tahun</label>
                     <input
                         v-model="form.tahun"
                         type="text"
-                        style="width: 100%"
+                        class="w-full border p-2"
                     />
+                    <div v-if="form.errors.tahun" class="text-red-600">
+                        {{ form.errors.tahun }}
+                    </div>
                 </div>
-
                 <div>
-                    <label>Stok</label>
+                    <label class="block">Stok</label>
                     <input
                         v-model="form.stok"
                         type="number"
-                        style="width: 100%"
+                        class="w-full border p-2"
                     />
+                    <div v-if="form.errors.stok" class="text-red-600">
+                        {{ form.errors.stok }}
+                    </div>
                 </div>
-
                 <button
                     type="submit"
-                    style="
-                        padding: 10px;
-                        background-color: #4caf50;
-                        color: white;
-                        border: none;
-                        cursor: pointer;
-                        border-radius: 5px;
-                    "
+                    :disabled="form.processing"
+                    class="bg-blue-600 text-white px-4 py-2 rounded"
                 >
                     Simpan Perubahan
                 </button>

@@ -2,7 +2,6 @@
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { useForm } from "@inertiajs/vue3";
 
-// useForm membuat sebuah objek form yang otomatis mengelola nilai input dan pesan error
 const form = useForm({
     kode_buku: "",
     judul: "",
@@ -12,47 +11,90 @@ const form = useForm({
     stok: 0,
 });
 
-// Dipanggil ketika tombol submit diklik
 function submit() {
-    // Mengirim data form ke route books.store, yaitu method store() pada BookController (Langkah 5)
     form.post(route("books.store"));
 }
 </script>
 
 <template>
     <AuthenticatedLayout>
-        <h1>Tambah Buku</h1>
-
-        <form @submit.prevent="submit">
-            <!-- @submit.prevent mencegah form reload halaman, lalu menjalankan function submit() -->
-
-            <label>Kode Buku</label>
-            <input v-model="form.kode_buku" type="text" />
-            <!-- Menampilkan pesan error dari validasi Laravel jika ada -->
-            <span v-if="form.errors.kode_buku">{{
-                form.errors.kode_buku
-            }}</span>
-
-            <label>Judul</label>
-            <input v-model="form.judul" type="text" />
-            <span v-if="form.errors.judul">{{ form.errors.judul }}</span>
-
-            <label>Pengarang</label>
-            <input v-model="form.pengarang" type="text" />
-            <span v-if="form.errors.pengarang">{{
-                form.errors.pengarang
-            }}</span>
-
-            <label>Penerbit</label>
-            <input v-model="form.penerbit" type="text" />
-
-            <label>Tahun</label>
-            <input v-model="form.tahun" type="text" />
-
-            <label>Stok</label>
-            <input v-model="form.stok" type="number" />
-
-            <button type="submit">Simpan</button>
-        </form>
+        <div class="p-4">
+            <h1 class="text-xl font-bold">Tambah Buku</h1>
+            <form @submit.prevent="submit" class="mt-3 space-y-3 max-w-md">
+                <div>
+                    <label class="block">Kode Buku</label>
+                    <input
+                        v-model="form.kode_buku"
+                        type="text"
+                        class="w-full border p-2"
+                    />
+                    <div v-if="form.errors.kode_buku" class="text-red-600">
+                        {{ form.errors.kode_buku }}
+                    </div>
+                </div>
+                <div>
+                    <label class="block">Judul</label>
+                    <input
+                        v-model="form.judul"
+                        type="text"
+                        class="w-full border p-2"
+                    />
+                    <div v-if="form.errors.judul" class="text-red-600">
+                        {{ form.errors.judul }}
+                    </div>
+                </div>
+                <div>
+                    <label class="block">Pengarang</label>
+                    <input
+                        v-model="form.pengarang"
+                        type="text"
+                        class="w-full border p-2"
+                    />
+                    <div v-if="form.errors.pengarang" class="text-red-600">
+                        {{ form.errors.pengarang }}
+                    </div>
+                </div>
+                <div>
+                    <label class="block">Penerbit</label>
+                    <input
+                        v-model="form.penerbit"
+                        type="text"
+                        class="w-full border p-2"
+                    />
+                    <div v-if="form.errors.penerbit" class="text-red-600">
+                        {{ form.errors.penerbit }}
+                    </div>
+                </div>
+                <div>
+                    <label class="block">Tahun</label>
+                    <input
+                        v-model="form.tahun"
+                        type="text"
+                        class="w-full border p-2"
+                    />
+                    <div v-if="form.errors.tahun" class="text-red-600">
+                        {{ form.errors.tahun }}
+                    </div>
+                </div>
+                <div>
+                    <label class="block">Stok</label>
+                    <input
+                        v-model="form.stok"
+                        type="number"
+                        class="w-full border p-2"
+                    />
+                    <div v-if="form.errors.stok" class="text-red-600">
+                        {{ form.errors.stok }}
+                    </div>
+                </div>
+                <button
+                    type="submit"
+                    :disabled="form.processing"
+                    class="bg-blue-600 text-white px-4 py-2 rounded"
+                >
+                    Simpan
+                </button>
+            </form>
+        </div>
     </AuthenticatedLayout>
 </template>

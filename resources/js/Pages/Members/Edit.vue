@@ -1,7 +1,8 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { useForm } from "@inertiajs/vue3";
-import { ref } from "vue";
+import { ref, watch, onBeforeUnmount } from "vue";
+import axios from "axios";
 
 const props = defineProps({
     member: Object,
@@ -22,6 +23,56 @@ function pilihFoto(event) {
     form.foto = berkas ?? null;
     pratinjau.value = berkas ? URL.createObjectURL(berkas) : null;
 }
+
+const statusNis = ref("");
+let timerNis = null;
+let permintaanNis = null;
+
+async function periksaNis() {
+    if (permintaanNis) {
+        permintaanNis.abort();
+    }
+    permintaanNis = new AbortController();
+    statusNis.value = "memeriksa";
+
+    try {
+        const respons = await axios.get(route("members.cek-nis"), {
+            params: {
+                nis_nim: form.nis_nim.trim(),
+                abaikan: props.member.id,
+            },
+            signal: permintaanNis.signal,
+        });
+        statusNis.value = respons.data.tersedia ? "tersedia" : "terpakai";
+    } catch (error) {
+        if (axios.isCancel(error)) {
+            return;
+        }
+        statusNis.value = "gagal";
+    }
+}
+
+watch(
+    () => form.nis_nim,
+    (nilai) => {
+        clearTimeout(timerNis);
+        if (!nilai || nilai.trim() === "") {
+            if (permintaanNis) {
+                permintaanNis.abort();
+            }
+            statusNis.value = "";
+            return;
+        }
+        timerNis = setTimeout(periksaNis, 500);
+    },
+);
+
+onBeforeUnmount(() => {
+    clearTimeout(timerNis);
+    if (permintaanNis) {
+        permintaanNis.abort();
+    }
+});
 
 function submit() {
     form.post(route("members.update", props.member.id));
@@ -51,6 +102,30 @@ function submit() {
                         type="text"
                         class="w-full border p-2"
                     />
+
+                    <div v-if="statusNis === 'memeriksa'" class="text-gray-500">
+                        Memeriksa NIS/NIM...
+                    </div>
+                    <div
+                        v-else-if="statusNis === 'tersedia'"
+                        class="text-green-700"
+                    >
+                        NIS/NIM ini tersedia.
+                    </div>
+                    <div
+                        v-else-if="statusNis === 'terpakai'"
+                        class="text-red-600"
+                    >
+                        NIS/NIM ini sudah terdaftar. Gunakan nomor lain.
+                    </div>
+                    <div
+                        v-else-if="statusNis === 'gagal'"
+                        class="text-yellow-700"
+                    >
+                        Pemeriksaan otomatis gagal. Anda tetap dapat menyimpan;
+                        server akan memeriksa ulang.
+                    </div>
+
                     <div v-if="form.errors.nis_nim" class="text-red-600">
                         {{ form.errors.nis_nim }}
                     </div>
@@ -101,7 +176,7 @@ function submit() {
                 </div>
                 <button
                     type="submit"
-                    :disabled="form.processing"
+                    :disabled="form.processing || statusNis === 'terpakai'"
                     class="bg-blue-600 text-white px-4 py-2 mt-4 rounded"
                 >
                     Simpan Perubahan

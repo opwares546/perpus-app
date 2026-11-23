@@ -1,24 +1,81 @@
 <script setup>
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
 import { Link, router } from "@inertiajs/vue3";
-import { ref } from "vue";
+import { ref, computed, watch, onBeforeUnmount } from "vue";
+import axios from "axios";
 
 const props = defineProps({
     members: Object,
     search: String,
 });
 
-const keyword = ref(props.search);
+const keyword = ref(props.search ?? "");
+const hasilCari = ref(null);
+const sedangMencari = ref(false);
+const pesanError = ref("");
 
-function cari() {
-    router.get("/members", { search: keyword.value });
+let timer = null;
+let permintaan = null;
+
+const daftarAnggota = computed(() => hasilCari.value ?? props.members.data);
+
+async function ambilHasil() {
+    if (permintaan) {
+        permintaan.abort();
+    }
+    permintaan = new AbortController();
+    sedangMencari.value = true;
+    pesanError.value = "";
+
+    try {
+        const respons = await axios.get(route("members.search"), {
+            params: { q: keyword.value.trim() },
+            signal: permintaan.signal,
+        });
+        hasilCari.value = respons.data;
+        sedangMencari.value = false;
+    } catch (error) {
+        if (axios.isCancel(error)) {
+            return;
+        }
+        sedangMencari.value = false;
+        pesanError.value =
+            "Pencarian gagal. Muat ulang halaman, lalu coba lagi.";
+    }
 }
+
+watch(keyword, (nilai) => {
+    clearTimeout(timer);
+    if (nilai.trim() === "") {
+        if (permintaan) {
+            permintaan.abort();
+        }
+        hasilCari.value = null;
+        sedangMencari.value = false;
+        pesanError.value = "";
+        return;
+    }
+    timer = setTimeout(ambilHasil, 300);
+});
 
 function hapus(id) {
     if (confirm("Yakin ingin menghapus anggota ini?")) {
-        router.delete(route("members.destroy", id));
+        router.delete(route("members.destroy", id), {
+            onSuccess: () => {
+                if (keyword.value.trim() !== "") {
+                    ambilHasil();
+                }
+            },
+        });
     }
 }
+
+onBeforeUnmount(() => {
+    clearTimeout(timer);
+    if (permintaan) {
+        permintaan.abort();
+    }
+});
 </script>
 
 <template>
@@ -28,18 +85,31 @@ function hapus(id) {
             <div v-if="$page.props.flash.success" class="my-2 text-green-700">
                 {{ $page.props.flash.success }}
             </div>
+
             <div class="my-3 flex items-center gap-3">
-                <Link href="/members/create">+ Tambah Anggota</Link>
+                <Link
+                    href="/members/create"
+                    class="bg-blue-600 text-white px-4 py-2 rounded"
+                    >+ Tambah Anggota</Link
+                >
                 <input
                     v-model="keyword"
-                    @keyup.enter="cari"
                     type="text"
-                    placeholder="Cari nama, NIS/NIM, atau No. HP..."
+                    placeholder="Ketik nama atau NIS/NIM..."
+                    class="border p-2 rounded w-64"
                 />
+                <span v-if="sedangMencari" class="text-gray-500"
+                    >Mencari...</span
+                >
             </div>
+
+            <div v-if="pesanError" class="my-2 text-red-600">
+                {{ pesanError }}
+            </div>
+
             <table class="border-collapse w-full">
                 <thead>
-                    <tr>
+                    <tr class="bg-gray-200">
                         <th class="border px-3 py-2">Foto</th>
                         <th class="border px-3 py-2">NIS/NIM</th>
                         <th class="border px-3 py-2">Nama</th>
@@ -48,7 +118,7 @@ function hapus(id) {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="member in members.data" :key="member.id">
+                    <tr v-for="member in daftarAnggota" :key="member.id">
                         <td class="border px-3 py-2 text-center">
                             <img
                                 v-if="member.foto"
@@ -75,14 +145,19 @@ function hapus(id) {
                             </button>
                         </td>
                     </tr>
-                    <tr v-if="members.data.length === 0">
+                    <tr v-if="daftarAnggota.length === 0">
                         <td colspan="5" class="border px-3 py-2 text-center">
-                            Belum ada data anggota.
+                            {{
+                                keyword.trim() !== ""
+                                    ? "Tidak ada anggota yang ditemukan."
+                                    : "Belum ada data anggota."
+                            }}
                         </td>
                     </tr>
                 </tbody>
             </table>
-            <div class="mt-3 flex gap-3">
+
+            <div v-if="hasilCari === null" class="mt-3 flex gap-3">
                 <template v-for="link in members.links" :key="link.label">
                     <Link
                         v-if="link.url"

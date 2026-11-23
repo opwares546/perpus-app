@@ -11,22 +11,56 @@ class BookController extends Controller
      * Display a listing of the resource.
      */
     public function index(Request $request)
-{
-    // Request $request ditambahkan sebagai parameter, untuk membaca query string ?search=...
-    $books = Book::when($request->search, function ($query, $search) {
-        // Blok ini HANYA dijalankan apabila $request->search tidak kosong
-        $query->where('judul', 'like', "%{$search}%")
-              ->orWhere('pengarang', 'like', "%{$search}%")
-              // Baris baru di bawah ini adalah jawaban Tugas Mandiri 2:
-              ->orWhere('kode_buku', 'like', "%{$search}%"); 
-    })->latest()->paginate(10)->withQueryString();
-    
-    // withQueryString() memastikan kata kunci pencarian tetap terbawa saat pindah halaman paginasi
-    return inertia('Books/Index', [
-        'books' => $books,
-        'search' => $request->search, // dikirim balik ke Vue agar kotak pencarian tetap terisi
-    ]);
-}
+    {
+        $books = Book::when($request->search, function ($query, $search) {
+            $query->where('judul', 'like', "%{$search}%")
+                  ->orWhere('pengarang', 'like', "%{$search}%")
+                  ->orWhere('kode_buku', 'like', "%{$search}%"); 
+        })->latest()->paginate(10)->withQueryString();
+        
+        return inertia('Books/Index', [
+            'books' => $books,
+            'search' => $request->search,
+        ]);
+    }
+
+    /**
+     * Endpoint JSON untuk live search buku (dipanggil oleh Axios).
+     */
+    public function search(Request $request)
+    {
+        $kataKunci = $request->query('q', '');
+
+        $books = Book::where(function ($query) use ($kataKunci) {
+            $query->where('judul', 'like', "%{$kataKunci}%")
+                  ->orWhere('pengarang', 'like', "%{$kataKunci}%")
+                  ->orWhere('penerbit', 'like', "%{$kataKunci}%"); // Tugas Mandiri J.2: Tambah pencarian penerbit
+        })
+        ->latest()
+        ->limit(10)
+        ->get(['id', 'kode_buku', 'judul', 'pengarang', 'stok', 'penerbit']); // Tugas Mandiri J.2: Kirim kolom penerbit
+
+        return response()->json($books);
+    }
+
+    /**
+     * Endpoint JSON untuk validasi realtime kode buku (Tugas Mandiri J.3).
+     */
+    public function cekKode(Request $request)
+    {
+        $kodeBuku = $request->query('kode_buku', '');
+        $abaikanId = $request->query('abaikan');
+
+        $sudahDipakai = Book::where('kode_buku', $kodeBuku)
+            ->when($abaikanId, function ($query, $id) {
+                $query->where('id', '!=', $id);
+            })
+            ->exists();
+
+        return response()->json([
+            'tersedia' => !$sudahDipakai,
+        ]);
+    }
 
     /**
      * Show the form for creating a new resource.
@@ -47,7 +81,7 @@ class BookController extends Controller
             'pengarang' => 'required|max:255',
             'penerbit'  => 'nullable|max:255',
             'tahun'     => 'nullable|digits:4',
-            'stok'      => 'required|integer|min:0', // Diubah menjadi required & min:0
+            'stok'      => 'required|integer|min:0',
         ]);
 
         Book::create($validated);
@@ -84,14 +118,13 @@ class BookController extends Controller
             'pengarang' => 'required|max:255',
             'penerbit'  => 'nullable|max:255',
             'tahun'     => 'nullable|digits:4',
-            'stok'      => 'required|integer|min:0', // Diubah menjadi required & min:0
+            'stok'      => 'required|integer|min:0',
         ]);
 
         $book->update($validated);
 
         return redirect()->route('books.index')->with('success', 'Buku berhasil diperbarui.'); 
     }
-
 
     /**
      * Remove the specified resource from storage.

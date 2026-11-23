@@ -1,3 +1,85 @@
+<script setup>
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import { Link, router } from "@inertiajs/vue3";
+import { ref, computed, watch, onBeforeUnmount } from "vue";
+import axios from "axios";
+
+const props = defineProps({
+    books: Object,
+    search: String,
+});
+
+const keyword = ref(props.search ?? "");
+const hasilCari = ref(null);
+const sedangMencari = ref(false);
+const pesanError = ref("");
+
+let timer = null;
+let permintaan = null;
+
+const daftarBuku = computed(() => hasilCari.value ?? props.books.data);
+
+async function ambilHasil() {
+    if (permintaan) {
+        permintaan.abort();
+    }
+    permintaan = new AbortController();
+    sedangMencari.value = true;
+    pesanError.value = "";
+
+    try {
+        const respons = await axios.get(route("books.search"), {
+            params: { q: keyword.value.trim() },
+            signal: permintaan.signal,
+        });
+        hasilCari.value = respons.data;
+        sedangMencari.value = false;
+    } catch (error) {
+        if (axios.isCancel(error)) {
+            return;
+        }
+        sedangMencari.value = false;
+        pesanError.value =
+            "Pencarian gagal. Muat ulang halaman, lalu coba lagi.";
+    }
+}
+
+watch(keyword, (nilai) => {
+    clearTimeout(timer);
+
+    if (nilai.trim() === "") {
+        if (permintaan) {
+            permintaan.abort();
+        }
+        hasilCari.value = null;
+        sedangMencari.value = false;
+        pesanError.value = "";
+        return;
+    }
+
+    timer = setTimeout(ambilHasil, 800);
+});
+
+function hapus(id) {
+    if (confirm("Yakin ingin menghapus buku ini?")) {
+        router.delete(route("books.destroy", id), {
+            onSuccess: () => {
+                if (keyword.value.trim() !== "") {
+                    ambilHasil();
+                }
+            },
+        });
+    }
+}
+
+onBeforeUnmount(() => {
+    clearTimeout(timer);
+    if (permintaan) {
+        permintaan.abort();
+    }
+});
+</script>
+
 <template>
     <AuthenticatedLayout>
         <div class="p-4">
